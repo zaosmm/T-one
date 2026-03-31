@@ -53,6 +53,22 @@ def read_audio(path_to_file: Path | str) -> npt.NDArray[np.int32]:
     return np.asarray(audio.samples, dtype=np.int16).astype(np.int32)
 
 
+def read_audio_from_bytes(data: bytes) -> npt.NDArray[np.int32]:
+    try:
+        import miniaudio
+    except ImportError as e:
+        raise ModuleNotFoundError(
+            "Package 'miniaudio' not found.\n"
+            "Install it with the following command:\n"
+            "  poetry install -E demo   # using package extras\n",
+        ) from e
+
+    audio = miniaudio.decode(data, nchannels=1, sample_rate=8000)
+    assert audio.sample_rate == 8000
+    assert audio.nchannels == 1
+    return np.asarray(audio.samples, dtype=np.int16).astype(np.int32)
+
+
 def read_stream_example_audio(*, long_audio: bool = False) -> Iterator[StreamingCTCPipeline.InputType]:
     """Simple example of streaming audio source using example audio from the package."""
     chunk_size = StreamingCTCPipeline.CHUNK_SIZE

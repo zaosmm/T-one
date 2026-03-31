@@ -12,11 +12,13 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 import numpy.typing as npt
-from fastapi import APIRouter, FastAPI, WebSocket, WebSocketDisconnect, HTTPException
+from fastapi import APIRouter, FastAPI, WebSocket, WebSocketDisconnect, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from starlette.responses import JSONResponse, FileResponse, HTMLResponse
 
+from tone import read_example_audio, read_audio
+from tone.demo.read_audio import read_audio_from_bytes
 from tone.pipeline import StreamingCTCPipeline
 from tone.project import VERSION
 
@@ -100,6 +102,31 @@ async def get_chunk_stream(ws: WebSocket) -> AsyncIterator[tuple[npt.NDArray[np.
             return
 
 
+async def get_chunk_stream_from_file(file: UploadFile) -> AsyncIterator[tuple[npt.NDArray[np.int16], bool]]:
+    """Get audio chunks from websocket and return them as async iterator."""
+    audio_data = bytearray()
+    # See description of PADDING in StreamingCTCPipeline
+    audio_data.extend(np.zeros((StreamingCTCPipeline.PADDING,), dtype=np.int16).tobytes())
+    is_last = False
+    while True:
+        recv_bytes = await file.read()
+        if len(recv_bytes) == 0:  # Last chunk of audio
+            is_last = True
+            audio_data.extend(np.zeros((StreamingCTCPipeline.PADDING,), dtype=np.int16).tobytes())
+            fill_chunk_size = -(len(audio_data) // _BYTES_PER_SAMPLE) % StreamingCTCPipeline.CHUNK_SIZE
+            audio_data.extend(np.zeros((fill_chunk_size,), dtype=np.int16).tobytes())
+        else:
+            audio_data.extend(recv_bytes)
+
+        while len(audio_data) >= StreamingCTCPipeline.CHUNK_SIZE * _BYTES_PER_SAMPLE:
+            chunk = np.frombuffer(audio_data[: StreamingCTCPipeline.CHUNK_SIZE * _BYTES_PER_SAMPLE], dtype=np.int16)
+            del audio_data[: StreamingCTCPipeline.CHUNK_SIZE * _BYTES_PER_SAMPLE]
+            yield chunk, is_last and (len(audio_data) == 0)
+
+        if len(recv_bytes) == 0:
+            return
+
+
 @router.websocket("/ws")
 async def websocket_stt(ws: WebSocket) -> None:
     """Websocket endpoint for streaming audio processing."""
@@ -135,6 +162,35 @@ async def websocket_stt(ws: WebSocket) -> None:
         result_file_txt = os.path.join(result_dir, 'result.txt')
         with open(result_file_txt, 'w') as result_obj:
             result_obj.write(text)
+
+
+@router.post("/asr")
+async def http_stt(
+        file: UploadFile = File(...),
+) -> JSONResponse:
+    """HTTP endpoint for non-streaming audio processing."""
+
+    # Validate file
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="No file provided")
+
+    try:
+        all_phrases = []
+
+        audio = read_audio_from_bytes(await file.read())
+        pipeline = StreamingCTCPipeline.from_hugging_face()
+        output = pipeline.forward_offline(audio)
+        for phrase in output:
+            all_phrases.append({"text": phrase.text, "start_time": phrase.start_time, "end_time": phrase.end_time})
+
+        return JSONResponse(content={
+            "success": True,
+            "transcript": all_phrases,
+            "num_phrases": len(all_phrases)
+        })
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error processing audio: {str(e)}")
 
 
 def init_dir_results(root='.') -> str:
@@ -250,7 +306,6 @@ async def delete_all_results() -> JSONResponse:
             return JSONResponse(content={'message': f'Successfully deleted {deleted_count} directories'})
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error deleting directories: {str(e)}")
-
 
 
 def get_application() -> FastAPI:
