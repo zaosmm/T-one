@@ -4,11 +4,15 @@
 *.csv
 *.gz
 *.egg*
+.idea/
 __pycache__
 version.py
 build/*
 dist/*
+models/
 .history
 .vscode
 .venv
 .DS_Store
+
+results/

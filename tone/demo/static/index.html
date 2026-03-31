@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>T-one Streaming ASR Demo</title>
+  <title>T-one Распознование аудио</title>
   <link rel="icon" type="image/x-icon" href="/logo.png">
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet" />
@@ -84,11 +84,10 @@
       <div class="d-flex align-items-center gap-3" style="flex: 1">
         <img src="/logo.png" alt="project logo" width="96" height="96" class="rounded shadow" />
         <div>
-          <h1 class="h3 fw-bold mb-0">T-one Streaming ASR Demo</h1>
-          <p class="mb-0">A demonstration of a streaming CTC‑based ASR pipeline for Russian</p>
+          <h1 class="h3 fw-bold mb-0">T-one Распознование аудио</h1>
         </div>
       </div>
-      <a class="btn btn-outline-dark d-flex align-items-center gap-1" href="https://github.com/voicekit-team/T-one" target="_blank" rel="noopener">
+      <a class="btn btn-outline-dark d-flex align-items-center gap-1" href="https://github.com/zaosmm/T-one/blob/main/README.ru.md" target="_blank" rel="noopener">
         <i class="bi bi-github fs-4"></i> GitHub
       </a>
     </div>
@@ -102,12 +101,12 @@
           <ul class="nav nav-tabs mb-3" id="inputTab" role="tablist">
             <li class="nav-item" role="presentation">
               <button class="nav-link active" id="upload-tab" data-bs-toggle="tab" data-bs-target="#uploadPane" type="button" role="tab" aria-controls="uploadPane" aria-selected="true">
-                <i class="bi bi-file-earmark-music me-1"></i>Upload
+                <i class="bi bi-file-earmark-music me-1"></i>Загрузить файл
               </button>
             </li>
             <li class="nav-item" role="presentation">
               <button class="nav-link" id="mic-tab" data-bs-toggle="tab" data-bs-target="#micPane" type="button" role="tab" aria-controls="micPane" aria-selected="false">
-                <i class="bi bi-mic me-1"></i>Microphone
+                <i class="bi bi-mic me-1"></i>Микрофон (только через https)
               </button>
             </li>
           </ul>
@@ -116,21 +115,21 @@
             <!-- Upload Pane -->
             <div class="tab-pane fade show active" id="uploadPane" role="tabpanel">
               <div class="mb-3">
-                <label for="fileInput" class="form-label fw-semibold">Select an audio file</label>
+                <label for="fileInput" class="form-label fw-semibold">Выберите файл</label>
                 <input id="fileInput" type="file" class="form-control" accept="audio/*" />
               </div>
 
               <div id="audioPlayerBox" class="mb-3">
                 <div class="alert alert-secondary shadow-sm small py-2">
                   <i class="bi bi-info-circle me-1"></i>
-                  The audio has been resampled to mono 16‑bit PCM @ 8&nbsp;kHz to match the ASR input.
+                  Звук был передискретизирован до монофонического 16-битного PCM с частотой 8 кГц для соответствия входным параметрам ASR.
                 </div>
                 <audio id="audioPlayer" class="w-100 mb-3" controls></audio>
               </div>
 
-              <button id="processBtn" class="btn btn-tk w-100 mb-3" disabled>Process</button>
+              <button id="processBtn" class="btn btn-tk w-100 mb-3" disabled>Процесс</button>
 
-              <label class="form-label fw-semibold mb-1">Streaming progress</label>
+              <label class="form-label fw-semibold mb-1">Прогресс</label>
               <div class="progress mb-3" role="progressbar" aria-label="stream progress">
                 <div id="progressBar" class="progress-bar" style="width:0%">0%</div>
               </div>
@@ -140,18 +139,18 @@
             <div class="tab-pane fade" id="micPane" role="tabpanel">
               <div class="alert alert-secondary shadow-sm small py-2">
                 <i class="bi bi-info-circle me-1"></i>
-                Recognition is performed phrase by phrase. Make a short pause for the text to appear in the list.
+                Распознавание выполняется пофразово. Сделайте небольшую паузу, чтобы текст появился в списке.
               </div>
 
               <div class="d-flex gap-2 mb-3">
-                <button id="startRecBtn" class="btn btn-tk flex-fill"><i class="bi bi-record-circle me-1"></i>Start</button>
-                <button id="stopRecBtn" class="btn btn-outline-dark flex-fill" disabled><i class="bi bi-stop-circle me-1"></i>Stop</button>
+                <button id="startRecBtn" class="btn btn-tk flex-fill"><i class="bi bi-record-circle me-1"></i>Старт</button>
+                <button id="stopRecBtn" class="btn btn-outline-dark flex-fill" disabled><i class="bi bi-stop-circle me-1"></i>Стоп</button>
                 <span id="timerDisplay" class="text-muted small" style="min-width: 80px; text-align: center; font-family: monospace; display: none;">00:00:00</span>
               </div>
 
               <canvas id="micWaveform" class="border rounded bg-white" width="500" height="100" style="display: none;"></canvas>
               <div id="finalMicAudioContainer" class="mt-3" style="display: none;">
-                <small class="text-muted d-block mb-1">Recorded Audio</small>
+                <small class="text-muted d-block mb-1">Записанный звук</small>
                 <audio id="finalMicAudioPlayer" class="w-100 mb-2" controls></audio>
               </div>
               <audio id="segmentPlayer" controls style="display: none; width: 100%; margin-top: 10px;"></audio>
@@ -159,16 +158,14 @@
             </div>
           </div>
 
-          <div class="alert alert-warning shadow-sm mt-auto">
-            <strong>Experimental implementation.</strong> The demo runs entirely on a CPU to keep the setup portable. For production‑grade latency and throughput we recommend running the models on a GPU and, where possible, applying runtime optimisations such as TensorRT (not included in the demo).
-          </div>
+
         </div>
       </div>
 
-      <!-- RIGHT: Transcript -->
+      <!-- RIGHT: Результат -->
       <div class="col-lg-6">
         <div class="card shadow-sm p-4 h-100 d-flex flex-column">
-          <h3 class="h5 fw-bold mb-3 d-flex align-items-center">Transcript
+          <h3 class="h5 fw-bold mb-3 d-flex align-items-center">Результат:&nbsp;<a href="/results.html">📄 cписок</a>
             <button id="copyBtn" class="btn btn-outline-secondary btn-sm ms-auto me-2" title="Copy JSON">
               <i class="bi bi-clipboard"></i>
             </button>
@@ -386,7 +383,7 @@
       }
     }
 
-    // ========== Transcript ==========
+    // ========== Результат ==========
     function appendTranscript(obj) {
       transcripts.push(obj);
       const { text, start_time, end_time } = obj;

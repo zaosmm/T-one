@@ -1,4 +1,7 @@
 **/__pycache__
+results/
+.idea/
+models/
 .history
 .venv
 dist
